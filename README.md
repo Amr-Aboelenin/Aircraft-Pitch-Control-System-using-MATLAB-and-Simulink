@@ -1,29 +1,308 @@
-# Aircraft-Pitch-Control-System-using-MATLAB-and-Simulink
-Aircraft Pitch Control System
+clc;
+clear;
+close all;
 
-This project presents the modeling, analysis, and control of an Aircraft Pitch Control System using MATLAB and Simulink.
+%% =========================================================
+%  AIRCRAFT PITCH CONTROL PROJECT
+%  ELE233 - Automatic Control Systems
+% ==========================================================
 
-Project Features
-Open-loop and closed-loop analysis
-Root Locus analysis
-Bode Plot analysis
-Pole-Zero mapping
-Cascaded controller design
-Step response evaluation
-Transfer function and state-space modeling
-Tools Used
-MATLAB
-Simulink
-Control System Toolbox
-Project Outcomes
+%% ---------------------------------------------------------
+% FIX COMMON MATLAB ISSUES
+% ----------------------------------------------------------
 
-The cascaded controller improved:
+rehash toolboxcache;
 
-Rise time
-Settling time
-Stability
-Dynamic response
-Author
+clear step;
+clear tf;
+clear feedback;
+clear bode;
+clear rlocus;
 
-Amr Ayman Aboelenin
+%% ---------------------------------------------------------
+% TRANSFER FUNCTION OF AIRCRAFT PITCH SYSTEM
+% ----------------------------------------------------------
+%
+%                1.151 s + 0.1774
+% P(s) = --------------------------------
+%        s^3 + 0.739 s^2 + 0.921 s
+%
+% ----------------------------------------------------------
 
+num = [1.151 0.1774];
+den = [1 0.739 0.921 0];
+
+P = tf(num, den);
+
+disp('=================================================');
+disp('OPEN LOOP TRANSFER FUNCTION P(s)');
+disp('=================================================');
+
+P
+
+%% =========================================================
+% PART 1 : OPEN LOOP ANALYSIS
+% ==========================================================
+
+disp('=================================================');
+disp('OPEN LOOP ANALYSIS');
+disp('=================================================');
+
+%% Step Response
+figure;
+step(P);
+grid on;
+title('Open Loop Step Response');
+
+%% Root Locus
+figure;
+rlocus(P);
+grid on;
+title('Open Loop Root Locus');
+
+%% Bode Plot
+figure;
+bode(P);
+grid on;
+title('Open Loop Bode Plot');
+
+%% Open Loop Step Information
+disp('Open Loop Step Information:');
+
+info_open = stepinfo(P);
+
+disp(info_open);
+
+%% =========================================================
+% PART 2 : CLOSED LOOP SYSTEM
+% ==========================================================
+
+disp('=================================================');
+disp('CLOSED LOOP ANALYSIS');
+disp('=================================================');
+
+%% Unity Feedback System
+T1 = feedback(P,1);
+
+disp('Closed Loop Transfer Function T1(s):');
+
+T1
+
+%% Closed Loop Step Response
+figure;
+step(T1);
+grid on;
+title('Closed Loop Step Response');
+
+%% Pole-Zero Map
+figure;
+pzmap(T1);
+grid on;
+title('Closed Loop Pole-Zero Map');
+
+%% Root Locus
+figure;
+rlocus(T1);
+grid on;
+title('Closed Loop Root Locus');
+
+%% Bode Plot
+figure;
+bode(T1);
+grid on;
+title('Closed Loop Bode Plot');
+
+%% Performance Parameters
+disp('Closed Loop Performance Parameters');
+
+info_closed = stepinfo(T1);
+
+Overshoot_1    = info_closed.Overshoot;
+RiseTime_1     = info_closed.RiseTime;
+SettlingTime_1 = info_closed.SettlingTime;
+PeakTime_1     = info_closed.PeakTime;
+
+fprintf('\nWITHOUT CONTROLLER:\n');
+fprintf('Overshoot      = %.4f %%\n', Overshoot_1);
+fprintf('Rise Time      = %.4f sec\n', RiseTime_1);
+fprintf('Settling Time  = %.4f sec\n', SettlingTime_1);
+fprintf('Peak Time      = %.4f sec\n', PeakTime_1);
+
+%% Steady State Error
+dc1 = dcgain(T1);
+
+ess1 = 1 - dc1;
+
+fprintf('Steady State Error = %.6f\n', ess1);
+
+%% =========================================================
+% PART 3 : STATE SPACE MODEL
+% ==========================================================
+
+disp('=================================================');
+disp('STATE SPACE MODEL');
+disp('=================================================');
+
+[A,B,C,D] = tf2ss(num,den);
+
+disp('Matrix A = ');
+disp(A);
+
+disp('Matrix B = ');
+disp(B);
+
+disp('Matrix C = ');
+disp(C);
+
+disp('Matrix D = ');
+disp(D);
+
+%% State Space System
+sys_ss = ss(A,B,C,D);
+
+disp('State Space Representation:');
+
+sys_ss
+
+%% State Space Step Response
+figure;
+step(sys_ss);
+grid on;
+title('State Space Step Response');
+
+%% =========================================================
+% PART 4 : CONTROLLER DESIGN
+% ==========================================================
+
+disp('=================================================');
+disp('CASCADED CONTROLLER ANALYSIS');
+disp('=================================================');
+
+%% Controller Transfer Function
+%
+%           10(0.55s + 1)
+% C(s) = --------------------
+%            0.022s + 1
+%
+
+numC = [5.5 10];
+denC = [0.022 1];
+
+C_controller = tf(numC, denC);
+
+disp('Controller Transfer Function C(s):');
+
+C_controller
+
+%% Open Loop with Controller
+G = series(C_controller, P);
+
+disp('Open Loop with Controller G(s):');
+
+G
+
+%% Closed Loop with Controller
+T2 = feedback(G,1);
+
+disp('Closed Loop with Controller T2(s):');
+
+T2
+
+%% =========================================================
+% RESPONSE WITH CONTROLLER
+% ==========================================================
+
+%% Step Response
+figure;
+step(T2);
+grid on;
+title('Closed Loop Step Response WITH Controller');
+
+%% Compare Responses
+figure;
+step(T1,'b',T2,'r');
+grid on;
+
+legend('Without Controller','With Controller');
+
+title('Comparison of Step Responses');
+
+%% Root Locus
+figure;
+rlocus(G);
+grid on;
+title('Root Locus WITH Controller');
+
+%% Bode Plot
+figure;
+bode(G);
+grid on;
+title('Bode Plot WITH Controller');
+
+%% Pole-Zero Map
+figure;
+pzmap(T2);
+grid on;
+title('Pole-Zero Map WITH Controller');
+
+%% =========================================================
+% PERFORMANCE ANALYSIS WITH CONTROLLER
+% ==========================================================
+
+disp('=================================================');
+disp('PERFORMANCE WITH CONTROLLER');
+disp('=================================================');
+
+info_controller = stepinfo(T2);
+
+Overshoot_2    = info_controller.Overshoot;
+RiseTime_2     = info_controller.RiseTime;
+SettlingTime_2 = info_controller.SettlingTime;
+PeakTime_2     = info_controller.PeakTime;
+
+fprintf('\nWITH CONTROLLER:\n');
+fprintf('Overshoot      = %.4f %%\n', Overshoot_2);
+fprintf('Rise Time      = %.4f sec\n', RiseTime_2);
+fprintf('Settling Time  = %.4f sec\n', SettlingTime_2);
+fprintf('Peak Time      = %.4f sec\n', PeakTime_2);
+
+%% Steady State Error
+dc2 = dcgain(T2);
+
+ess2 = 1 - dc2;
+
+fprintf('Steady State Error = %.6f\n', ess2);
+
+%% =========================================================
+% COMPARISON TABLE
+% ==========================================================
+
+disp('=================================================');
+disp('COMPARISON BETWEEN BOTH SYSTEMS');
+disp('=================================================');
+
+fprintf('\n');
+
+fprintf('WITHOUT CONTROLLER:\n');
+fprintf('Overshoot          = %.4f %%\n', Overshoot_1);
+fprintf('Rise Time          = %.4f sec\n', RiseTime_1);
+fprintf('Settling Time      = %.4f sec\n', SettlingTime_1);
+fprintf('Peak Time          = %.4f sec\n', PeakTime_1);
+fprintf('Steady State Error = %.6f\n', ess1);
+
+fprintf('\n');
+
+fprintf('WITH CONTROLLER:\n');
+fprintf('Overshoot          = %.4f %%\n', Overshoot_2);
+fprintf('Rise Time          = %.4f sec\n', RiseTime_2);
+fprintf('Settling Time      = %.4f sec\n', SettlingTime_2);
+fprintf('Peak Time          = %.4f sec\n', PeakTime_2);
+fprintf('Steady State Error = %.6f\n', ess2);
+
+%% =========================================================
+% END OF PROJECT
+% ==========================================================
+
+disp('=================================================');
+disp('PROJECT FINISHED SUCCESSFULLY');
+disp('=================================================');
