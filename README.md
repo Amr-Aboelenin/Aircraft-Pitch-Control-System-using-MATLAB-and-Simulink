@@ -1,0 +1,2 @@
+# Aircraft-Pitch-Control-System-using-MATLAB-and-Simulink
+This project presents the modeling and analysis of an Aircraft Pitch Control System using MATLAB and Simulink.  Features Open-loop and closed-loop analysis Root Locus and Bode Plot Cascaded controller design Step response evaluation State-space and transfer function modeling Tools Used MATLAB Simulink Control System Toolbox Author  Amr Aboelenin
